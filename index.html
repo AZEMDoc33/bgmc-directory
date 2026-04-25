@@ -325,9 +325,42 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
 .save-contact-btn:active {
   transform: scale(0.95);
 }
+
+/* ── PORTAL BACK BANNER ── */
+#portalBackBanner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--navy);
+  color: rgba(255,255,255,0.85);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 9px 20px;
+  text-align: center;
+}
+#portalBackBanner.visible { display: flex; }
+#portalBackBanner a {
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s;
+}
+#portalBackBanner a:hover { color: var(--gold-light); }
 </style>
 </head>
 <body>
+
+
+<!-- Portal back banner (only shown when coming from myervisit.com/portal) -->
+<div id="portalBackBanner">
+  <span>You came from the Clinical Portal</span>
+  <a href="https://myervisit.com/portal">← Back to Portal</a>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -659,6 +692,16 @@ function buildName(c){
   return c.first ? `${c.last}, ${c.first}` : c.last;
 }
 
+
+
+// ── PORTAL REFERRAL DETECTION ────────────────────────────────────────────
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('ref') === 'portal') {
+    var banner = document.getElementById('portalBackBanner');
+    if (banner) banner.classList.add('visible');
+  }
+})();
 
 // ── SAVE CONTACT (vCard) ──────────────────────────────────────────────────
 function saveContact(encodedName, encodedPhone, encodedSpec) {
