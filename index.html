@@ -210,6 +210,26 @@
       text-align:center;padding:16px;
       font-size:0.72rem;color:rgba(107,114,128,0.6);
     }
+    .contact-wrap{
+      text-align:center;
+      padding:8px 20px 4px;
+    }
+    .contact-btn{
+      display:inline-flex;align-items:center;gap:8px;
+      background:white;
+      border:1.5px solid rgba(30,58,95,0.15);
+      color:var(--navy);
+      font-family:'DM Sans',sans-serif;
+      font-size:0.82rem;font-weight:500;
+      padding:9px 22px;border-radius:30px;
+      text-decoration:none;
+      transition:all 0.2s;
+      box-shadow:0 2px 8px rgba(30,58,95,0.07);
+    }
+    .contact-btn:hover{
+      border-color:var(--teal);color:var(--teal);
+      box-shadow:0 4px 14px rgba(30,58,95,0.13);
+    }
 
     /* ── MOBILE ── */
     @media(max-width:600px){
@@ -308,6 +328,12 @@
     <span class="emoji">🔍</span>
     No results found. Try a different search term.
   </div>
+</div>
+
+<div class="contact-wrap">
+  <a class="contact-btn" href="mailto:eric.cummins33@gmail.com?subject=Contact%20Request&body=Name%3A%0APhone%3A%0ASpecialty%3A">
+    📬 Submit Contact Request
+  </a>
 </div>
 
 <p class="footer-note">For clinical staff use only · Not for patient distribution · © 2025 Eric Cummins, MD</p>
