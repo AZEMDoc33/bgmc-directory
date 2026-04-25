@@ -125,11 +125,6 @@ transition:all 0.2s;white-space:nowrap;
 }
 .chip:hover{border-color:var(--teal);color:var(--teal)}
 .chip.active{background:var(--navy);border-color:var(--navy);color:white}
-.chip-home{
-border-color:var(--gold);
-color:var(--gold);
-}
-.chip-home:hover{background:var(--gold);border-color:var(--gold);color:white}
 /* ── STATS BAR ── */
 .stats-bar{
 max-width:860px;margin:16px auto 0;
@@ -298,6 +293,16 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
   color: white;
   box-shadow: 0 4px 14px rgba(201,151,58,0.35);
 }
+
+/* ── BOBBING ARROW ANIMATION ── */
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+.reset-btn .arrow-icon {
+  display: inline-block;
+  animation: pulse-scale 2s ease-in-out infinite;
+}
 </style>
 </head>
 <body>
@@ -359,7 +364,7 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
 
 <!-- Reset / clear search button -->
 <div class="reset-wrap" id="resetWrap">
-  <button class="reset-btn" id="resetBtn">🏠 Back to Home · Show All Contacts</button>
+  <button class="reset-btn" id="resetBtn"><span class="arrow-icon">⏪</span> Back to Home · Show All Contacts</button>
 </div>
 
 <div class="contact-wrap">
@@ -585,7 +590,6 @@ const CONTACTS = [
 
 // ── Filter categories ──
 const FILTERS = [
-  {label:"🏠 Back to Home", key:"home"},
   {label:"All",key:"all"},
   {label:"🚨 Emergency",key:"Emergency"},
   {label:"🏥 OOU",key:"Observation (OOU)"},
@@ -684,10 +688,10 @@ function clearSearch(){
 const fw = document.getElementById('filterWrap');
 FILTERS.forEach(f => {
   const btn = document.createElement('button');
-  btn.className = 'chip' + (f.key==='all' ? ' active' : '') + (f.key==='home' ? ' chip-home' : '');
+  btn.className = 'chip' + (f.key==='all' ? ' active' : '');
   btn.dataset.key = f.key;
   btn.textContent = f.label;
-  if (f.key === 'home') {
+  if (f.key === 'all') {
     btn.onclick = () => { clearSearch(); setFilter('all'); };
   } else {
     btn.onclick = () => setFilter(f.key);
