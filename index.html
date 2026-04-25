@@ -6,6 +6,16 @@
   <title>BGMC Phone Book — Banner Gateway Medical Center</title>
   <meta name="robots" content="noindex, nofollow"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+  <!-- ── PWA ── -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1E3A5F"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="BGMC Directory"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth}
@@ -204,6 +214,50 @@
       font-size:0.72rem;color:rgba(107,114,128,0.6);
     }
 
+    /* ── PWA INSTALL BANNER ── */
+    #pwa-banner{
+      display:none;
+      position:fixed;bottom:0;left:0;right:0;z-index:999;
+      background:var(--navy);
+      padding:14px 20px;
+      box-shadow:0 -4px 20px rgba(30,58,95,0.25);
+      animation:slideUp 0.4s ease;
+    }
+    #pwa-banner.show{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    #pwa-banner .pwa-icon{font-size:1.6rem;flex-shrink:0}
+    #pwa-banner .pwa-text{flex:1;min-width:180px}
+    #pwa-banner .pwa-text strong{color:white;font-size:0.9rem;display:block}
+    #pwa-banner .pwa-text span{color:rgba(255,255,255,0.6);font-size:0.78rem}
+    #pwa-install-btn{
+      background:var(--gold);color:white;border:none;
+      padding:9px 20px;border-radius:30px;
+      font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;
+      cursor:pointer;white-space:nowrap;flex-shrink:0;
+      transition:background 0.2s;
+    }
+    #pwa-install-btn:hover{background:var(--gold-light)}
+    #pwa-dismiss-btn{
+      background:none;border:none;color:rgba(255,255,255,0.4);
+      font-size:1.1rem;cursor:pointer;padding:4px;flex-shrink:0;
+    }
+    #pwa-ios-hint{
+      display:none;
+      position:fixed;bottom:0;left:0;right:0;z-index:999;
+      background:var(--navy);
+      padding:16px 20px;
+      box-shadow:0 -4px 20px rgba(30,58,95,0.25);
+      text-align:center;animation:slideUp 0.4s ease;
+    }
+    #pwa-ios-hint.show{display:block}
+    #pwa-ios-hint p{color:white;font-size:0.88rem;margin-bottom:4px}
+    #pwa-ios-hint span{color:rgba(255,255,255,0.55);font-size:0.78rem}
+    #pwa-ios-close{
+      position:absolute;top:12px;right:16px;
+      background:none;border:none;color:rgba(255,255,255,0.5);
+      font-size:1.1rem;cursor:pointer;
+    }
+
     /* ── MOBILE ── */
     @media(max-width:600px){
       .header{padding:28px 16px 44px}
@@ -274,6 +328,24 @@
 </div>
 
 <p class="footer-note">For clinical staff use only · Not for patient distribution · © 2025 Eric Cummins, MD</p>
+
+<!-- PWA Install Banner (Android / Desktop) -->
+<div id="pwa-banner">
+  <span class="pwa-icon">📱</span>
+  <div class="pwa-text">
+    <strong>Install BGMC Directory</strong>
+    <span>Add to home screen for offline access</span>
+  </div>
+  <button id="pwa-install-btn">Install App</button>
+  <button id="pwa-dismiss-btn" title="Dismiss">✕</button>
+</div>
+
+<!-- iOS Install Hint (Safari only) -->
+<div id="pwa-ios-hint">
+  <button id="pwa-ios-close">✕</button>
+  <p>📲 Install this app on your iPhone</p>
+  <span>Tap <strong>Share</strong> (↑) then <strong>"Add to Home Screen"</strong> for offline access</span>
+</div>
 
 <script>
 const CONTACTS = [
@@ -599,6 +671,66 @@ document.getElementById('searchInput').addEventListener('input', function(){
 });
 
 render();
-</script>
+
+// ── SERVICE WORKER REGISTRATION ──────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] SW registered:', reg.scope))
+      .catch(err => console.warn('[PWA] SW failed:', err));
+  });
+}
+
+// ── INSTALL PROMPT ────────────────────────────────────────────────────────────
+let deferredPrompt = null;
+const pwaBanner   = document.getElementById('pwa-banner');
+const installBtn  = document.getElementById('pwa-install-btn');
+const dismissBtn  = document.getElementById('pwa-dismiss-btn');
+const iosHint     = document.getElementById('pwa-ios-hint');
+const iosClose    = document.getElementById('pwa-ios-close');
+
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || window.navigator.standalone === true;
+
+// Android/Chrome: capture install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone && !sessionStorage.getItem('pwa-dismissed')) {
+    setTimeout(() => pwaBanner.classList.add('show'), 2500);
+  }
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  pwaBanner.classList.remove('show');
+});
+
+dismissBtn.addEventListener('click', () => {
+  pwaBanner.classList.remove('show');
+  sessionStorage.setItem('pwa-dismissed', '1');
+});
+
+// iOS Safari: show manual tap instructions
+const isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isSafari  = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+if (isIOS && isSafari && !isStandalone && !sessionStorage.getItem('pwa-ios-dismissed')) {
+  setTimeout(() => iosHint.classList.add('show'), 3000);
+}
+
+iosClose.addEventListener('click', () => {
+  iosHint.classList.remove('show');
+  sessionStorage.setItem('pwa-ios-dismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  pwaBanner.classList.remove('show');
+  iosHint.classList.remove('show');
+  deferredPrompt = null;
+});
+
 </body>
 </html>
