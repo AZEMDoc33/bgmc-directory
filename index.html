@@ -266,37 +266,37 @@ background: none; border: none; color: rgba(255,255,255,0.4);
 font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
 }
 
-/* ── FLOATING BACK TO TOP BTN ── */
-#backToTop {
-  position: fixed;
-  bottom: 28px;
-  left: 24px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--navy);
-  color: white;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(30,58,95,0.35);
-  display: flex;
-  align-items: center;
+
+
+/* ── RESET BUTTON (below results) ── */
+.reset-wrap {
+  max-width: 860px;
+  margin: 4px auto 8px;
+  padding: 0 20px;
+  display: none;
   justify-content: center;
-  opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 0.3s, transform 0.3s, background 0.2s;
-  pointer-events: none;
-  z-index: 999;
 }
-#backToTop.visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+.reset-wrap.visible { display: flex; }
+.reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 26px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(201,151,58,0.12);
 }
-#backToTop:hover {
+.reset-btn:hover {
   background: var(--gold);
-  box-shadow: 0 6px 20px rgba(201,151,58,0.45);
+  color: white;
+  box-shadow: 0 4px 14px rgba(201,151,58,0.35);
 }
 </style>
 </head>
@@ -355,6 +355,11 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
     <span class="emoji">🔍</span>
     No results found. Try a different search term.
   </div>
+</div>
+
+<!-- Reset / clear search button -->
+<div class="reset-wrap" id="resetWrap">
+  <button class="reset-btn" id="resetBtn">🏠 Back to Home · Show All Contacts</button>
 </div>
 
 <div class="contact-wrap">
@@ -652,6 +657,12 @@ function render(){
   document.getElementById('resultCount').innerHTML = `<strong>${count}</strong> of ${CONTACTS.length} contacts`;
   table.style.display = count ? '' : 'none';
   noRes.style.display = count ? 'none' : 'block';
+  // Show reset button whenever search or filter is active
+  var resetWrap = document.getElementById('resetWrap');
+  if (resetWrap) {
+    var isFiltered = currentSearch.trim() !== '' || currentFilter !== 'all';
+    resetWrap.classList.toggle('visible', isFiltered);
+  }
 }
 
 function setFilter(key){
@@ -692,6 +703,13 @@ document.getElementById('searchInput').addEventListener('input', function(){
 });
 
 render();
+
+// Reset button listener
+document.getElementById('resetBtn').addEventListener('click', function() {
+  clearSearch();
+  setFilter('all');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
 
 // ── PWA SERVICE WORKER ────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -741,22 +759,6 @@ document.getElementById('pwa-ios-close').addEventListener('click', function() {
   localStorage.setItem('pwa-installed', '1');
 });
 
-
-// ── FLOATING BACK TO TOP ──────────────────────────────────────────────────
-var backToTopBtn = document.getElementById('backToTop');
-window.addEventListener('scroll', function() {
-  if (window.scrollY > 200) {
-    backToTopBtn.classList.add('visible');
-  } else {
-    backToTopBtn.classList.remove('visible');
-  }
-});
-backToTopBtn.addEventListener('click', function() {
-  clearSearch();
-  setFilter('all');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
 window.addEventListener('appinstalled', function() {
   document.getElementById('pwa-android-banner').classList.remove('pwa-show');
   document.getElementById('pwa-ios-banner').classList.remove('pwa-show');
@@ -785,9 +787,6 @@ window.addEventListener('appinstalled', function() {
   <button class="pwa-close-btn" id="pwa-ios-close" title="Dismiss">✕</button>
 </div>
 
-
-<!-- Floating back to top button -->
-<button id="backToTop" title="Back to top &amp; clear search">🏠</button>
 
 </body>
 </html>
