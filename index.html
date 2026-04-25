@@ -265,6 +265,39 @@ cursor: pointer; white-space: nowrap; flex-shrink: 0;
 background: none; border: none; color: rgba(255,255,255,0.4);
 font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
 }
+
+/* ── FLOATING BACK TO TOP BTN ── */
+#backToTop {
+  position: fixed;
+  bottom: 28px;
+  left: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(30,58,95,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.3s, transform 0.3s, background 0.2s;
+  pointer-events: none;
+  z-index: 999;
+}
+#backToTop.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+#backToTop:hover {
+  background: var(--gold);
+  box-shadow: 0 6px 20px rgba(201,151,58,0.45);
+}
 </style>
 </head>
 <body>
@@ -547,7 +580,7 @@ const CONTACTS = [
 
 // ── Filter categories ──
 const FILTERS = [
-  {label:"🏠 Back to Home", key:"home", url:"https://myervisit.com"},
+  {label:"🏠 Back to Home", key:"home"},
   {label:"All",key:"all"},
   {label:"🚨 Emergency",key:"Emergency"},
   {label:"🏥 OOU",key:"Observation (OOU)"},
@@ -643,8 +676,8 @@ FILTERS.forEach(f => {
   btn.className = 'chip' + (f.key==='all' ? ' active' : '') + (f.key==='home' ? ' chip-home' : '');
   btn.dataset.key = f.key;
   btn.textContent = f.label;
-  if (f.url) {
-    btn.onclick = () => window.location.href = f.url;
+  if (f.key === 'home') {
+    btn.onclick = () => { clearSearch(); setFilter('all'); };
   } else {
     btn.onclick = () => setFilter(f.key);
   }
@@ -708,6 +741,22 @@ document.getElementById('pwa-ios-close').addEventListener('click', function() {
   localStorage.setItem('pwa-installed', '1');
 });
 
+
+// ── FLOATING BACK TO TOP ──────────────────────────────────────────────────
+var backToTopBtn = document.getElementById('backToTop');
+window.addEventListener('scroll', function() {
+  if (window.scrollY > 200) {
+    backToTopBtn.classList.add('visible');
+  } else {
+    backToTopBtn.classList.remove('visible');
+  }
+});
+backToTopBtn.addEventListener('click', function() {
+  clearSearch();
+  setFilter('all');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
 window.addEventListener('appinstalled', function() {
   document.getElementById('pwa-android-banner').classList.remove('pwa-show');
   document.getElementById('pwa-ios-banner').classList.remove('pwa-show');
@@ -735,6 +784,10 @@ window.addEventListener('appinstalled', function() {
   </div>
   <button class="pwa-close-btn" id="pwa-ios-close" title="Dismiss">✕</button>
 </div>
+
+
+<!-- Floating back to top button -->
+<button id="backToTop" title="Back to top &amp; clear search">🏠</button>
 
 </body>
 </html>
