@@ -1,74 +1,50 @@
-// BGMC Directory Service Worker
-// Cache version — bump this number whenever you update the directory data
+// BGMC Directory — Service Worker
+// Bump version number here whenever you update the directory contacts
 const CACHE_NAME = 'bgmc-directory-v1';
 
-// All files to cache for offline use
 const FILES_TO_CACHE = [
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
-// ─── Install: cache all files ────────────────────────────────────────────────
-self.addEventListener('install', event => {
+// Install: cache all files
+self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Pre-caching app shell');
+    caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(FILES_TO_CACHE);
     })
   );
-  // Take over immediately — don't wait for old SW to die
   self.skipWaiting();
 });
 
-// ─── Activate: clean up old caches ───────────────────────────────────────────
-self.addEventListener('activate', event => {
+// Activate: remove old caches
+self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then(keyList =>
-      Promise.all(
-        keyList.map(key => {
-          if (key !== CACHE_NAME) {
-            console.log('[SW] Removing old cache:', key);
-            return caches.delete(key);
-          }
-        })
-      )
-    )
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(key) { return key !== CACHE_NAME; })
+            .map(function(key) { return caches.delete(key); })
+      );
+    })
   );
-  // Claim all open clients immediately
   self.clients.claim();
 });
 
-// ─── Fetch: cache-first strategy (works offline) ─────────────────────────────
-self.addEventListener('fetch', event => {
+// Fetch: serve from cache first, fall back to network
+self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // Serve from cache — works offline
-        return cachedResponse;
-      }
-
-      // Not in cache — try network, then cache the response for next time
-      return fetch(event.request).then(networkResponse => {
-        // Only cache valid GET responses
-        if (
-          !networkResponse ||
-          networkResponse.status !== 200 ||
-          networkResponse.type === 'opaque' ||
-          event.request.method !== 'GET'
-        ) {
-          return networkResponse;
+    caches.match(event.request).then(function(cached) {
+      return cached || fetch(event.request).then(function(response) {
+        if (response && response.status === 200 && event.request.method === 'GET') {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, copy); });
         }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return networkResponse;
-      }).catch(() => {
-        // Network failed and nothing in cache — return offline fallback
-        return caches.match('./index.html');
+        return response;
       });
+    }).catch(function() {
+      return caches.match('./index.html');
     })
   );
 });

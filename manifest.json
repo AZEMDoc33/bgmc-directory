@@ -1,10 +1,10 @@
 {
-  "name": "BGMC Phone Directory",
+  "name": "BGMC Directory",
   "short_name": "BGMC Directory",
-  "description": "Banner Gateway Medical Center Staff Phone Directory — offline access",
+  "description": "Banner Gateway Medical Center Staff Phone Directory",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1E3A5F",
+  "background_color": "#C0C0C0",
   "theme_color": "#1E3A5F",
   "orientation": "portrait-primary",
   "icons": [
