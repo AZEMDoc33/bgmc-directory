@@ -224,11 +224,13 @@ box-shadow:0 4px 14px rgba(30,58,95,0.13);
 /* ── MOBILE ── */
 @media(max-width:600px){
 .header{padding:28px 16px 44px}
+.dir-wrap{padding:0 8px}
+.dir-table thead th:nth-child(2),
+.dir-table td:nth-child(2),
 .dir-table thead th:nth-child(4),
 .dir-table td:nth-child(4){display:none}
-  .dir-table thead th:nth-child(5),
-  .dir-table td:nth-child(5){display:none}
-.dir-table td{padding:10px 12px;font-size:0.83rem}
+.dir-table td{padding:10px 8px;font-size:0.83rem}
+.dir-table thead th{padding:10px 8px}
 .td-phone a{font-size:0.83rem}
 .stats-bar{justify-content:center}
 .type-legend{display:none}
@@ -312,10 +314,14 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
-  padding: 4px 8px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 8px;
   border-radius: 8px;
   transition: transform 0.15s, background 0.2s;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 .save-contact-btn:hover {
@@ -595,6 +601,10 @@ const CONTACTS = [
 {last:"Pulmonary Nodule Clinic",first:"",phone:"(480) 256-6444",specialty:"Pulmonology",type:"Office"},
 {last:"Shah",first:"Archan",phone:"(480) 256-6444",specialty:"Pulmonology",type:"Office"},
 {last:"Valley Fever Clinic – Banner",first:"",phone:"(602) 521-4675",specialty:"Pulmonology",type:"Office"},
+// ── INFECTIOUS DISEASE / PUBLIC HEALTH ──
+{last:"Infectious Disease (ID) 8a-4p",first:"",phone:"(480) 543-2280",specialty:"Infectious Disease",type:"Office"},
+{last:"Infectious Disease 8p-8a",first:"",phone:"(602) 201-2264",specialty:"Infectious Disease",type:"Office"},
+{last:"Maricopa County Health Department",first:"",phone:"(602) 506-6767",specialty:"Public Health",type:"Office"},
 // ── DENTISTRY ──
 {last:"Anytime Dental (Gilbert)",first:"",phone:"(480) 569-2228",specialty:"Dentist",type:"Office"},
 {last:"AT Still University Dental Clinic",first:"",phone:"(480) 248-8100",specialty:"Dentist",type:"Office"},
@@ -655,6 +665,7 @@ const FILTERS = [
   {label:"👶 Pediatrics",key:"ped"},
   {label:"🔪 Surgery",key:"surg"},
   {label:"🫁 GI",key:"Gastroenterology (GI)"},
+  {label:"🦠 ID",key:"Infectious Disease"},
   {label:"📞 Depts & Lines",key:"ED Dept"},
 ];
 
@@ -693,6 +704,33 @@ function buildName(c){
   return c.first ? `${c.last}, ${c.first}` : c.last;
 }
 
+function displayName(c){
+  return c.first ? `${c.first} ${c.last}` : c.last;
+}
+
+function escapeVCard(value){
+  return (value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+}
+
+function safeFileName(value){
+  return (value || 'BGMC Contact')
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'BGMC_Contact';
+}
+
+function escapeAttr(value){
+  return (value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 
 
 // ── PORTAL REFERRAL DETECTION ────────────────────────────────────────────
@@ -705,33 +743,43 @@ function buildName(c){
 })();
 
 // ── SAVE CONTACT (vCard) ──────────────────────────────────────────────────
-function saveContact(encodedName, encodedPhone, encodedSpec) {
-  var name = decodeURIComponent(encodedName);
-  var phone = decodeURIComponent(encodedPhone);
-  var spec = decodeURIComponent(encodedSpec);
+async function saveContact(contactIndex) {
+  var c = CONTACTS[contactIndex];
+  if (!c) return;
+  var firstName = c.first || '';
+  var lastName = c.last || '';
+  var phone = c.phone || '';
+  var spec = c.specialty || '';
+  var fullName = displayName(c);
 
-  // Parse "Last, First" into parts
-  var parts = name.split(', ');
-  var lastName = parts[0] || '';
-  var firstName = parts[1] || '';
-
-  // Build vCard 3.0 string
   var vcf = [
     'BEGIN:VCARD',
     'VERSION:3.0',
-    'FN:' + (firstName ? firstName + ' ' + lastName : lastName),
-    'N:' + lastName + ';' + firstName + ';;;',
+    'FN:' + escapeVCard(fullName),
+    'N:' + escapeVCard(lastName) + ';' + escapeVCard(firstName) + ';;;',
     'TEL;TYPE=VOICE:' + phone.replace(/[^0-9+]/g, ''),
-    spec ? 'ORG:BGMC - ' + spec : 'ORG:Banner Gateway Medical Center',
+    spec ? 'ORG:' + escapeVCard('BGMC - ' + spec) : 'ORG:Banner Gateway Medical Center',
     'NOTE:Banner Gateway Medical Center',
     'END:VCARD'
   ].join('\r\n');
 
+  var fileName = safeFileName(fullName) + '.vcf';
   var blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  var file = new File([blob], fileName, { type: 'text/vcard' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: fullName });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = (firstName ? firstName + '_' + lastName : lastName).replace(/\s+/g,'_') + '.vcf';
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -749,17 +797,15 @@ function render(){
   filtered.sort((a,b) => normalize(a.last).localeCompare(normalize(b.last)));
   for(const c of filtered){
     const name = buildName(c);
+    const contactIndex = CONTACTS.indexOf(c);
     const telNum = phoneToTel(c.phone);
     const hl = t => q ? highlight(t, q.split(/\s+/).join('|')) : t;
-    const safeName = encodeURIComponent(buildName(c));
-    const safePhone = encodeURIComponent(c.phone);
-    const safeSpec = encodeURIComponent(c.specialty||'');
     rows += `<tr>
       <td class="td-name">${hl(name)}</td>
       <td class="td-specialty">${hl(c.specialty||'')}</td>
       <td class="td-phone"><a href="tel:+1${telNum}">📞 ${hl(c.phone)}</a></td>
       <td style="text-align:center"><span class="type-badge ${c.type==='Cell'?'badge-cell':'badge-office'}">${c.type}</span></td>
-      <td style="text-align:center"><button class="save-contact-btn" onclick="saveContact('${safeName}','${safePhone}','${safeSpec}')" title="Save to contacts">📇</button></td>
+      <td style="text-align:center"><button class="save-contact-btn" onclick="saveContact(${contactIndex})" title="Save to contacts" aria-label="Save ${escapeAttr(name)} to contacts">💾</button></td>
     </tr>`;
     count++;
   }
