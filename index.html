@@ -415,7 +415,7 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
   </div>
 </div>
 <div class="save-help">
-  <strong>Save tip:</strong> tap 💾 to open the contact card. On iPhone, tap the contact card preview at the top of the share sheet, then choose Create New Contact.
+  <strong>Save tip:</strong> tap 💾 to open the contact card. On iPhone, choose Create New Contact if prompted. If it only shows sharing options, use Save to Files, then open the saved .vcf file.
 </div>
 
 <!-- DIRECTORY TABLE -->
@@ -757,7 +757,7 @@ function escapeAttr(value){
 })();
 
 // ── SAVE CONTACT (vCard) ──────────────────────────────────────────────────
-async function saveContact(contactIndex) {
+function saveContact(contactIndex) {
   var c = CONTACTS[contactIndex];
   if (!c) return;
   var firstName = c.first || '';
@@ -779,25 +779,15 @@ async function saveContact(contactIndex) {
 
   var fileName = safeFileName(fullName) + '.vcf';
   var blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
-  var file = new File([blob], fileName, { type: 'text/vcard' });
-
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: fullName });
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
   a.download = fileName;
+  a.target = '_blank';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
 }
 
 function render(){
