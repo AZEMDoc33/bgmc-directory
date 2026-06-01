@@ -765,13 +765,14 @@ function saveContact(contactIndex) {
   var phone = c.phone || '';
   var spec = c.specialty || '';
   var fullName = displayName(c);
+  var phoneType = c.type === 'Cell' ? 'CELL' : 'WORK';
 
   var vcf = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     'FN:' + escapeVCard(fullName),
     'N:' + escapeVCard(lastName) + ';' + escapeVCard(firstName) + ';;;',
-    'TEL;TYPE=VOICE:' + phone.replace(/[^0-9+]/g, ''),
+    'TEL;TYPE=' + phoneType + ':' + phone.replace(/[^0-9+]/g, ''),
     spec ? 'ORG:' + escapeVCard('BGMC - ' + spec) : 'ORG:Banner Gateway Medical Center',
     'NOTE:Banner Gateway Medical Center',
     'END:VCARD'
