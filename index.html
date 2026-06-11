@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BGMC Directory</title>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
@@ -88,9 +88,9 @@ background:white;border-radius:50px;
 padding:14px 22px;
 box-shadow:0 8px 32px rgba(30,58,95,0.18);
 border:2px solid transparent;
-transition:border 0.2s;
+transition:border-color 0.2s,box-shadow 0.25s;
 }
-.search-box:focus-within{border-color:var(--teal)}
+.search-box:focus-within{border-color:var(--teal);box-shadow:0 10px 36px rgba(61,122,138,0.24)}
 .search-icon{color:var(--teal);flex-shrink:0;font-size:1.1rem}
 .search-box input{
 flex:1;border:none;outline:none;
@@ -122,9 +122,15 @@ font-family:'DM Sans',sans-serif;
 font-size:0.8rem;font-weight:500;
 color:var(--navy);cursor:pointer;
 transition:all 0.2s;white-space:nowrap;
+min-height:34px;
 }
 .chip:hover{border-color:var(--teal);color:var(--teal)}
+.chip:active{transform:scale(0.95)}
 .chip.active{background:var(--navy);border-color:var(--navy);color:white}
+.chip:focus-visible,.clear-btn:focus-visible,.reset-btn:focus-visible,
+.save-contact-btn:focus-visible,.contact-btn:focus-visible,.td-phone a:focus-visible{
+outline:2px solid var(--teal);outline-offset:2px;
+}
 /* ── STATS BAR ── */
 .stats-bar{
 max-width:860px;margin:16px auto 0;
@@ -148,6 +154,7 @@ color:var(--muted);text-align:center;
 .dir-wrap{
 max-width:860px;margin:16px auto 32px;
 padding:0 20px;
+animation:fadeSlideUp 0.5s 0.1s ease both;
 }
 .dir-table{
 width:100%;border-collapse:collapse;
@@ -227,6 +234,11 @@ box-shadow:0 2px 8px rgba(30,58,95,0.07);
 .contact-btn:hover{
 border-color:var(--teal);color:var(--teal);
 box-shadow:0 4px 14px rgba(30,58,95,0.13);
+}
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){
+*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
+html{scroll-behavior:auto}
 }
 /* ── MOBILE ── */
 @media(max-width:600px){
@@ -399,7 +411,7 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
   <div class="search-box">
     <span class="search-icon">🔍</span>
     <input type="search" id="searchInput" placeholder="Search by name, specialty, or phone…" autocomplete="off" autocorrect="off" spellcheck="false"/>
-    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()" aria-label="Clear search">✕</button>
   </div>
 </div>
 
@@ -668,6 +680,7 @@ const CONTACTS = [
 {last:"Stem Cell (Dept)",first:"",phone:"(480) 543-2466",specialty:"ED Dept",type:"Office"},
 {last:"Triage (RN)",first:"",phone:"(480) 543-5184",specialty:"ED Dept",type:"Office"},
 {last:"US Tech",first:"",phone:"(480) 543-5172",specialty:"ED Dept",type:"Office"},
+{last:"Vocera",first:"",phone:"(480) 543-4350",specialty:"ED Dept",type:"Office"},
 {last:"X-Ray Tech",first:"",phone:"(480) 543-2608",specialty:"ED Dept",type:"Office"},
 ];
 
@@ -710,8 +723,11 @@ function matchSearch(c, q){
 
 function highlight(text, q){
   if(!q||!text) return text;
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  return text.replace(new RegExp(`(${escaped})`,'gi'),'<mark>$1</mark>');
+  const pattern = q.split(/\s+/).filter(Boolean)
+    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))
+    .join('|');
+  if(!pattern) return text;
+  return text.replace(new RegExp(`(${pattern})`,'gi'),'<mark>$1</mark>');
 }
 
 function phoneToTel(p){ return p.replace(/\D/g,''); }
@@ -806,7 +822,7 @@ function render(){
     const name = buildName(c);
     const contactIndex = CONTACTS.indexOf(c);
     const telNum = phoneToTel(c.phone);
-    const hl = t => q ? highlight(t, q.split(/\s+/).join('|')) : t;
+    const hl = t => q ? highlight(t, q) : t;
     rows += `<tr>
       <td class="td-name">${hl(name)}</td>
       <td class="td-specialty">${hl(c.specialty||'')}</td>
@@ -863,6 +879,12 @@ document.getElementById('searchInput').addEventListener('input', function(){
   currentSearch = this.value;
   document.getElementById('clearBtn').classList.toggle('visible', !!this.value);
   render();
+});
+
+// Escape clears search, Enter dismisses mobile keyboard
+document.getElementById('searchInput').addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { clearSearch(); }
+  if (e.key === 'Enter') { this.blur(); }
 });
 
 render();
