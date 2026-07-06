@@ -455,7 +455,7 @@ font-size: 1rem; cursor: pointer; padding: 4px; flex-shrink: 0;
   </div>
 </div>
 <div class="save-help">
-  <strong>Save tip:</strong> tap the save icon (person with +) to open the contact card. On iPhone, choose Create New Contact if prompted. If it only shows sharing options, use Save to Files, then open the saved .vcf file.
+  <strong>Save tip:</strong> tap the save icon (person with +), then choose <strong>Contacts</strong> from the share sheet to save — or tap Cancel / swipe down to go back without saving.
 </div>
 
 <!-- DIRECTORY TABLE -->
@@ -823,6 +823,18 @@ function saveContact(contactIndex) {
   ].join('\r\n');
 
   var fileName = safeFileName(fullName) + '.vcf';
+
+  // Preferred path: native share sheet (has Cancel / swipe-to-dismiss on iOS).
+  // "Contacts" appears as a destination when the user does want to save.
+  try {
+    var file = new File([vcf], fileName, { type: 'text/vcard' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: fullName }).catch(function(){ /* user cancelled — fine */ });
+      return;
+    }
+  } catch (e) { /* File constructor or share unsupported — fall through */ }
+
+  // Fallback: blob download (desktop / older browsers)
   var blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
