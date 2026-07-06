@@ -247,15 +247,9 @@ html{scroll-behavior:auto}
 @media(max-width:600px){
 .header{padding:28px 16px 44px}
 .dir-wrap{padding:0 12px}
-/* single-row horizontally scrollable chip strip */
-.filter-wrap{
-flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
-padding:0 16px 6px;-webkit-overflow-scrolling:touch;
-scrollbar-width:none;
--webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
-mask-image:linear-gradient(90deg,#000 88%,transparent);
-}
-.filter-wrap::-webkit-scrollbar{display:none}
+/* chips wrap into stacked rows — all visible at once, no side-scrolling.
+   They live outside .search-wrap, so they scroll away while search stays sticky */
+.filter-wrap{padding:0 16px}
 /* table hidden on phones — card rows shown instead */
 .dir-table{display:none!important}
 .dir-cards{display:block!important}
@@ -953,6 +947,14 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 
 // ── PWA SERVICE WORKER ────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
+  // When a new service worker takes over, reload once so users see fresh content
+  // without having to close/reopen or reinstall the app
+  var swRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (swRefreshed) return;
+    swRefreshed = true;
+    window.location.reload();
+  });
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js');
   });

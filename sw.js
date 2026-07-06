@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bgmc-directory-v6';
+const CACHE_NAME = 'bgmc-directory-v7';
 const FILES_TO_CACHE = ['./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 
 self.addEventListener('install', function(e) {
@@ -13,15 +13,35 @@ self.addEventListener('activate', function(e) {
   self.clients.claim();
 });
 
+// NETWORK-FIRST for pages: always try the live site, fall back to cache when offline.
+// (Previous version was cache-first, which froze installed apps on stale content.)
 self.addEventListener('fetch', function(e) {
-  e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      return cached || fetch(e.request).then(function(r) {
-        if (r && r.status===200 && e.request.method==='GET') {
-          caches.open(CACHE_NAME).then(function(c){c.put(e.request,r.clone());});
+  if (e.request.method !== 'GET') return;
+  const isPage = e.request.mode === 'navigate' ||
+                 (e.request.destination === 'document') ||
+                 e.request.url.endsWith('/index.html') || e.request.url.endsWith('/');
+  if (isPage) {
+    e.respondWith(
+      fetch(e.request).then(function(r) {
+        if (r && r.status === 200) {
+          var copy = r.clone();
+          caches.open(CACHE_NAME).then(function(c){ c.put(e.request, copy); });
         }
         return r;
-      });
-    }).catch(function(){ return caches.match('./index.html'); })
-  );
+      }).catch(function(){ return caches.match(e.request).then(function(m){ return m || caches.match('./index.html'); }); })
+    );
+  } else {
+    // cache-first for static assets (icons, manifest, fonts)
+    e.respondWith(
+      caches.match(e.request).then(function(cached) {
+        return cached || fetch(e.request).then(function(r) {
+          if (r && r.status === 200) {
+            var copy = r.clone();
+            caches.open(CACHE_NAME).then(function(c){ c.put(e.request, copy); });
+          }
+          return r;
+        });
+      })
+    );
+  }
 });
